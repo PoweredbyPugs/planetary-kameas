@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Planetary Magic Squares</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e0ddd5;font-family:'Georgia',serif;padding:24px;overflow-y:auto}
+h1{text-align:center;font-size:28px;letter-spacing:4px;margin-bottom:4px;color:#c9b97a}
+.subtitle{text-align:center;font-size:13px;color:#888;margin-bottom:8px;letter-spacing:2px}
+.toggle-wrap{text-align:center;margin-bottom:8px}
+.toggle-btn{background:none;border:none;color:#444;cursor:pointer;font-family:Georgia,serif;font-size:12px;letter-spacing:2px;padding:6px 16px;transition:all 0.3s}
+.toggle-btn:hover{color:#c9b97a}
+.toggle-btn .arrow{display:inline-block;transition:transform 0.3s;font-size:10px;margin-right:4px}
+.toggle-btn.open .arrow{transform:rotate(90deg)}
+.controls-drawer{text-align:center;margin-bottom:20px;max-height:0;overflow:hidden;opacity:0;transition:max-height 0.4s ease,opacity 0.3s ease,margin 0.3s ease}
+.controls-drawer.open{max-height:120px;opacity:1}
+.controls-drawer button{background:#1a1a28;color:#c9b97a;border:1px solid #333;padding:8px 20px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:13px;letter-spacing:1px;margin:0 6px;transition:all 0.2s}
+.controls-drawer button:hover{background:#252538;border-color:#c9b97a}
+.controls-drawer button.active{background:#2a2a3a;border-color:#c9b97a;box-shadow:0 0 8px rgba(201,185,122,0.3)}
+.speed-control{display:inline-flex;align-items:center;gap:8px;margin-left:16px;color:#666;font-size:12px}
+.speed-control input{width:80px;accent-color:#c9b97a}
+.legend{text-align:center;margin-bottom:20px;font-size:12px;color:#666;line-height:1.8}
+.legend .method-odd{color:#6abf69}.legend .method-even{color:#e0a050}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:24px;max-width:1400px;margin:0 auto}
+.card{background:#12121a;border:1px solid #222;border-radius:12px;padding:20px;display:flex;flex-direction:column;align-items:center;position:relative}
+.card-header{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.planet-symbol{font-size:32px}
+.planet-name{font-size:20px;font-weight:bold;letter-spacing:2px}
+.method-tag{font-size:10px;padding:2px 8px;border-radius:10px;letter-spacing:1px;position:absolute;top:12px;right:12px}
+.method-siamese{background:#1a2a1a;color:#6abf69;border:1px solid #3a5a3a}
+.method-exchange{background:#2a2218;color:#e0a050;border:1px solid #5a4a2a}
+.meta{font-size:12px;color:#777;margin-bottom:14px;text-align:center;line-height:1.6}
+.element-badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;letter-spacing:1px;font-weight:bold;margin-bottom:2px}
+.wood{background:#1a3a1a;color:#6abf69;border:1px solid #3a6a3a}
+.fire{background:#3a1a1a;color:#e05555;border:1px solid #6a3a3a}
+.earth-el{background:#3a3018;color:#c9a84c;border:1px solid #6a5a2a}
+.metal{background:#2a2a30;color:#c0c0cc;border:1px solid #555}
+.water{background:#0a1a2a;color:#5599dd;border:1px solid #2a4a6a}
+table{border-collapse:collapse;margin-top:4px}
+td{text-align:center;border:1px solid #2a2a35;color:#d0ccc0;font-variant-numeric:tabular-nums;transition:all 0.3s ease;position:relative}
+td.highlighted{background:#2a2a1a !important;color:#c9b97a;font-weight:bold;box-shadow:inset 0 0 12px rgba(201,185,122,0.2)}
+td.current{background:#3a3520 !important;color:#fff;box-shadow:inset 0 0 16px rgba(201,185,122,0.5),0 0 8px rgba(201,185,122,0.3);transform:scale(1.05);z-index:1}
+td.dim{color:#333 !important;border-color:#1a1a22 !important}
+td .order-num{position:absolute;top:1px;right:2px;font-size:8px;color:#c9b97a;opacity:0.7}
+.s3 td{width:52px;height:52px;font-size:18px}
+.s4 td{width:46px;height:46px;font-size:16px}
+.s5 td{width:40px;height:40px;font-size:15px}
+.s6 td{width:36px;height:36px;font-size:14px}
+.s7 td{width:32px;height:32px;font-size:13px}
+.s8 td{width:30px;height:30px;font-size:12px}
+.s9 td{width:28px;height:28px;font-size:11px}
+tr:nth-child(odd) td{background:#14141e}
+tr:nth-child(even) td{background:#101018}
+.note{text-align:center;color:#555;font-size:11px;margin-top:20px;font-style:italic;letter-spacing:1px}
+.constant{color:#c9b97a}
+.arrow-overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+</style>
+</head>
+<body>
+<h1>⬡ PLANETARY MAGIC SQUARES ⬡</h1>
+<div class="subtitle">KAMEAS OF THE SEVEN CLASSICAL PLANETS · WUXING CORRESPONDENCES</div>
+
+<div class="toggle-wrap">
+<button class="toggle-btn" id="drawer-toggle" onclick="toggleDrawer()"><span class="arrow">▸</span> CONSTRUCTION</button>
+</div>
+<div class="controls-drawer" id="controls-drawer">
+<button id="btn-static" class="active" onclick="setMode('static')">Static</button>
+<button id="btn-trace" onclick="setMode('trace')">Trace Path</button>
+<button id="btn-animate" onclick="setMode('animate')">▶ Animate</button>
+<button id="btn-pause" onclick="togglePause()" style="display:none">⏸ Pause</button>
+<span class="speed-control">
+<label>Speed</label>
+<input type="range" id="speed" min="50" max="800" value="300" oninput="updateSpeed()">
+</span>
+</div>
+
+<div class="legend" id="legend" style="display:none">
+<span class="method-odd">● Siamese Method (odd orders)</span>: Start top-center → move ↗ diagonally → wrap edges → drop ↓ when blocked<br>
+<span class="method-even">● Exchange Method (even orders)</span>: Fill sequentially → swap numbers lying on diagonals
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="note">Kameas from Cornelius Agrippa, <i>Three Books of Occult Philosophy</i> (1531) · Wuxing: 木 Wood · 火 Fire · 土 Earth · 金 Metal · 水 Water</div>
+<div class="note" style="margin-top:6px">Saturn=slowest→3 · Jupiter→4 · Mars→5 · Sun→6 · Venus→7 · Mercury→8 · Moon=fastest→9</div>
+
+<script>
+const SQUARES = [
+  {
+    name:'SATURN',symbol:'♄',order:3,element:'土 EARTH',elClass:'earth-el',
+    method:'siamese',
+    grid:[[4,9,2],[3,5,7],[8,1,6]],
+    constant:15,sum:45
+  },
+  {
+    name:'JUPITER',symbol:'♃',order:4,element:'木 WOOD',elClass:'wood',
+    method:'exchange',
+    grid:[[4,14,15,1],[9,7,6,12],[5,11,10,8],[16,2,3,13]],
+    constant:34,sum:136
+  },
+  {
+    name:'MARS',symbol:'♂',order:5,element:'火 FIRE',elClass:'fire',
+    method:'siamese',
+    grid:[[11,24,7,20,3],[4,12,25,8,16],[17,5,13,21,9],[10,18,1,14,22],[23,6,19,2,15]],
+    constant:65,sum:325
+  },
+  {
+    name:'SUN',symbol:'☉',order:6,element:'火 FIRE (Yang)',elClass:'fire',
+    method:'exchange',
+    grid:[[6,32,3,34,35,1],[7,11,27,28,8,30],[19,14,16,15,23,24],[18,20,22,21,17,13],[25,29,10,9,26,12],[36,5,33,4,2,31]],
+    constant:111,sum:666
+  },
+  {
+    name:'VENUS',symbol:'♀',order:7,element:'金 METAL',elClass:'metal',
+    method:'siamese',
+    grid:[[22,47,16,41,10,35,4],[5,23,48,17,42,11,29],[30,6,24,49,18,36,12],[13,31,7,25,43,19,37],[38,14,32,1,26,44,20],[21,39,8,33,2,27,45],[46,15,40,9,34,3,28]],
+    constant:175,sum:1225
+  },
+  {
+    name:'MERCURY',symbol:'☿',order:8,element:'水 WATER',elClass:'water',
+    method:'exchange',
+    grid:[[8,58,59,5,4,62,63,1],[49,15,14,52,53,11,10,56],[41,23,22,44,45,19,18,48],[32,34,35,29,28,38,39,25],[40,26,27,37,36,30,31,33],[17,47,46,20,21,43,42,24],[9,55,54,12,13,51,50,16],[64,2,3,61,60,6,7,57]],
+    constant:260,sum:2080
+  },
+  {
+    name:'MOON',symbol:'☽',order:9,element:'水 WATER (Yin)',elClass:'water',
+    method:'siamese',
+    grid:[[37,78,29,70,21,62,13,54,5],[6,38,79,30,71,22,63,14,46],[47,7,39,80,31,72,23,55,15],[16,48,8,40,81,32,64,24,56],[57,17,49,9,41,73,33,65,25],[26,58,18,50,1,42,74,34,66],[67,27,59,10,51,2,43,75,35],[36,68,19,60,11,52,3,44,76],[77,28,69,20,61,12,53,4,45]],
+    constant:369,sum:3321
+  }
+];
+
+// Compute placement order: which cell gets number k?
+function computePlacementOrder(sq) {
+  const n = sq.order;
+  const order = [];
+  // Build a map: value -> {row, col}
+  const posOf = {};
+  for(let r=0;r<n;r++) for(let c=0;c<n;c++) posOf[sq.grid[r][c]] = {r,c};
+  for(let k=1;k<=n*n;k++) order.push(posOf[k]);
+  return order;
+}
+
+let mode = 'static';
+let speed = 300;
+let animTimers = [];
+let paused = false;
+let animState = []; // per-square animation state
+
+function setMode(m) {
+  mode = m;
+  paused = false;
+  document.getElementById('btn-static').classList.toggle('active', m==='static');
+  document.getElementById('btn-trace').classList.toggle('active', m==='trace');
+  document.getElementById('btn-animate').classList.toggle('active', m==='animate');
+  document.getElementById('btn-pause').style.display = m==='animate' ? 'inline-block' : 'none';
+  document.getElementById('btn-pause').textContent = '⏸ Pause';
+  document.getElementById('legend').style.display = m==='static' ? 'none' : 'block';
+  stopAllAnimations();
+  if(m==='static') renderAll();
+  else if(m==='trace') renderTrace();
+  else if(m==='animate') startAnimate();
+}
+
+function togglePause() {
+  paused = !paused;
+  document.getElementById('btn-pause').textContent = paused ? '▶ Resume' : '⏸ Pause';
+  if(!paused) resumeAnimations();
+}
+
+function updateSpeed() {
+  speed = 850 - document.getElementById('speed').value;
+}
+
+function stopAllAnimations() {
+  animTimers.forEach(t => clearTimeout(t));
+  animTimers = [];
+  animState = [];
+}
+
+function buildGrid() {
+  const container = document.getElementById('grid');
+  container.innerHTML = '';
+  SQUARES.forEach((sq, si) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <span class="method-tag method-${sq.method==='siamese'?'siamese':'exchange'}">${sq.method==='siamese'?'SIAMESE':'EXCHANGE'}</span>
+      <div class="card-header"><span class="planet-symbol">${sq.symbol}</span><span class="planet-name">${sq.name}</span></div>
+      <div class="meta"><span class="element-badge ${sq.elClass}">${sq.element}</span><br>${sq.order}×${sq.order} · Magic Constant: <span class="constant">${sq.constant}</span> · Sum: ${sq.sum}</div>
+    `;
+    const table = document.createElement('table');
+    table.className = `s${sq.order}`;
+    table.id = `table-${si}`;
+    for(let r=0;r<sq.order;r++){
+      const tr = document.createElement('tr');
+      for(let c=0;c<sq.order;c++){
+        const td = document.createElement('td');
+        td.id = `cell-${si}-${r}-${c}`;
+        td.textContent = sq.grid[r][c];
+        tr.appendChild(td);
+      }
+      table.appendChild(tr);
+    }
+    card.appendChild(table);
+    container.appendChild(card);
+  });
+}
+
+function renderAll() {
+  SQUARES.forEach((sq, si) => {
+    for(let r=0;r<sq.order;r++) for(let c=0;c<sq.order;c++){
+      const td = document.getElementById(`cell-${si}-${r}-${c}`);
+      td.className = '';
+      td.innerHTML = sq.grid[r][c];
+    }
+  });
+}
+
+function renderTrace() {
+  SQUARES.forEach((sq, si) => {
+    const order = computePlacementOrder(sq);
+    for(let r=0;r<sq.order;r++) for(let c=0;c<sq.order;c++){
+      const td = document.getElementById(`cell-${si}-${r}-${c}`);
+      td.className = 'highlighted';
+      const val = sq.grid[r][c];
+      td.innerHTML = `${val}<span class="order-num">${val}</span>`;
+    }
+    // Draw path lines via connecting highlights
+    order.forEach((pos, i) => {
+      const td = document.getElementById(`cell-${si}-${pos.r}-${pos.c}`);
+      const pct = i / (order.length-1);
+      const alpha = 0.15 + pct * 0.85;
+      td.style.opacity = alpha;
+    });
+  });
+}
+
+function startAnimate() {
+  animState = SQUARES.map((sq) => ({step:0, order:computePlacementOrder(sq), total:sq.order*sq.order}));
+  // Clear all cells first
+  SQUARES.forEach((sq, si) => {
+    for(let r=0;r<sq.order;r++) for(let c=0;c<sq.order;c++){
+      const td = document.getElementById(`cell-${si}-${r}-${c}`);
+      td.className = 'dim';
+      td.innerHTML = '·';
+      td.style.opacity = '';
+    }
+  });
+  // Start stepping
+  stepAll();
+}
+
+function stepAll() {
+  if(paused) return;
+  let anyActive = false;
+  SQUARES.forEach((sq, si) => {
+    const st = animState[si];
+    if(st.step >= st.total) return;
+    anyActive = true;
+    // Remove 'current' from previous
+    if(st.step > 0) {
+      const prev = st.order[st.step-1];
+      const prevTd = document.getElementById(`cell-${si}-${prev.r}-${prev.c}`);
+      prevTd.classList.remove('current');
+      prevTd.classList.add('highlighted');
+    }
+    const pos = st.order[st.step];
+    const td = document.getElementById(`cell-${si}-${pos.r}-${pos.c}`);
+    td.className = 'current';
+    td.innerHTML = `${sq.grid[pos.r][pos.c]}<span class="order-num">${st.step+1}</span>`;
+    st.step++;
+  });
+  if(anyActive) {
+    const t = setTimeout(stepAll, speed);
+    animTimers.push(t);
+  } else {
+    // Final: remove last 'current'
+    SQUARES.forEach((sq, si) => {
+      const st = animState[si];
+      const last = st.order[st.total-1];
+      const td = document.getElementById(`cell-${si}-${last.r}-${last.c}`);
+      td.classList.remove('current');
+      td.classList.add('highlighted');
+    });
+  }
+}
+
+function resumeAnimations() {
+  stepAll();
+}
+
+function toggleDrawer() {
+  const drawer = document.getElementById('controls-drawer');
+  const btn = document.getElementById('drawer-toggle');
+  const isOpen = drawer.classList.toggle('open');
+  btn.classList.toggle('open', isOpen);
+}
+
+buildGrid();
+renderAll();
+</script>
+</body>
+</html>
